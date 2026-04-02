@@ -1,0 +1,50 @@
+% === Our Macros ===
+\newcommand{\figurespace}{\vspace{-4mm}} 
+
+\def\algorithmautorefname{Algorithm}
+\renewcommand{\sectionautorefname}{\S}
+\def\Snospace~{\S{}}
+\renewcommand*\sectionautorefname{\Snospace}
+\renewcommand{\subsectionautorefname}{\sectionautorefname}
+\renewcommand{\subsubsectionautorefname}{\sectionautorefname}
+\renewcommand*{\figureautorefname}{Fig.}
+\renewcommand*{\tableautorefname}{Tab.}
+\renewcommand*{\appendixautorefname}{App.}
+\renewcommand*{\algorithmautorefname}{Alg.}
+\newcommand{\etal}{\textit{et~al}.~\ }
+\newcommand{\eg}{\textit{e.g.,}~}
+\newcommand{\ie}{\textit{i.e.,}~}
+\newcommand{\cf}{\textit{c.f.,}~}
+\newcommand{\bg}{\texttt{BoxingGym}~}
+
+% \newcommand{\alglabel}[1]{\label{alg:#1}}
+% \newcommand{\algref}[1]{Alg~\ref{alg:#1}}
+% \renewcommand*{\algorithmautorefname}{Alg.}
+\newcommand\lt[2]{\mathcal{#1}_{\text{#2}}}
+% \newcommand\st[2]{#1_{\text{#2}}}
+% \newfloatcommand{capbtabbox}{table}[][\FBwidth]
+\definecolor{coco1}{HTML}{D9E4EC}
+\definecolor{coco2}{HTML}{B7CFDC}
+\definecolor{coco3}{HTML}{6AABD2}
+\definecolor{coco4}{HTML}{385E72}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=coco3,
+    filecolor=coco4,      
+    urlcolor=coco3,
+    citecolor=coco3,
+}
+
+\newcommand{\ourmethod}{\texttt{GIANTS-4B}}
+% Should we do GIANTS-Bench/GIANTS-BENCH to keep naming consistent
+\newcommand{\ourbenchmark}{\textsc{GiantsBench}}
+\newcommand{\benchmarknumdata}{$20k$}
+
+\newcommand{\gemtwoflash}{\texttt{gemini-2.5-flash}}
+\newcommand{\gemtwopro}{\texttt{gemini-2.5-pro}}
+\newcommand{\gemthreepro}{\texttt{gemini-3-pro}}
+\newcommand{\qwenfourb}{\texttt{Qwen3-4B}}
+\newcommand{\qwenfourteenb}{\texttt{Qwen3-14B}}
+
+\usepackage{float}
+
