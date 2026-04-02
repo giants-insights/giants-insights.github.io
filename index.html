@@ -4,10 +4,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="description"
-    content="Project page for GIANTS, a benchmark and RL-trained model for anticipating scientific insights from parent papers." />
+    content="GIANTS introduces insight anticipation, GiantsBench, and an RL-trained 4B model for predicting downstream scientific insights from parent papers." />
   <meta property="og:title" content="GIANTS: Generative Insight Anticipation from Scientific Literature" />
   <meta property="og:description"
-    content="Benchmarking and training language models to anticipate scientific insights from parent papers." />
+    content="Insight anticipation from scientific literature with GiantsBench and GIANTS-4B." />
   <meta property="og:url" content="https://giants-insights.github.io/" />
   <meta property="og:image" content="static/images/giants_fig1.png" />
   <meta property="og:image:width" content="1200" />
@@ -15,7 +15,7 @@
 
   <meta name="twitter:title" content="GIANTS: Generative Insight Anticipation from Scientific Literature" />
   <meta name="twitter:description"
-    content="Benchmarking and training language models to anticipate scientific insights from parent papers." />
+    content="Insight anticipation from scientific literature with GiantsBench and GIANTS-4B." />
   <meta name="twitter:image" content="static/images/giants_fig1.png" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="keywords" content="Generative Insight Anticipation, GIANTS, Scientific Literature, Language Models" />
@@ -123,6 +123,11 @@
                 </span>
               </div>
             </div>
+            <!-- <p class="subtitle is-5 tw-mt-5 tw-max-w-4xl tw-mx-auto">
+              GIANTS asks whether a model can anticipate a downstream paper's core contribution from the two parent
+              papers it builds on. GiantsBench contains 17,839 literature-grounded examples, and GIANTS-4B achieves a
+              34% relative improvement over Gemini-3-Pro on the main test set.
+            </p> -->
           </div>
         </div>
       </div>
@@ -139,10 +144,10 @@
           </div>
         </div>
         <p class="tw-text-left tw-text-sm tw-text-gray-500 tw-mt-4">
-          <b>Overview of GiantsBench and GIANTS-4B.</b> For each downstream paper, the pipeline identifies two cited
-          parent papers whose ideas combine into the core contribution, summarizes those parents, and uses the pair as
-          model input. GIANTS-4B is then trained with reinforcement learning to generate insights that more closely
-          match the downstream paper's actual contribution.
+          <b>Overview of GiantsBench and GIANTS-4B.</b> For each downstream paper, the pipeline identifies
+          two cited parent papers whose ideas are synergistically combined, summarizes those parents, and rewrites the
+          downstream contribution into a standalone target insight. GIANTS-4B is then trained with reinforcement
+          learning so that generations from the parent summaries more closely match the real downstream paper.
         </p>
       </div>
     </div>
@@ -155,16 +160,16 @@
           <h2 class="title is-3">Abstract</h2>
           <div class="content has-text-justified box">
             <p>
-              Scientific progress often comes from recombining earlier ideas into a sharper new contribution. GIANTS
-              studies whether language models can anticipate that next step. We introduce
-              <strong>insight anticipation</strong>, a literature-grounded task in which a model receives summaries of
-              two parent papers and must predict the core contribution of a downstream paper that builds on them. To
-              evaluate this setting, we construct <strong>GiantsBench</strong>, a benchmark of 17,839 parent-child
-              tuples spanning eight scientific domains, and score generations with an LM judge whose ratings correlate
-              with expert evaluations. We also present <strong>GIANTS-4B</strong>, a 4B-parameter model trained with
-              reinforcement learning to optimize semantic similarity to the target insight. Despite its smaller open
-              architecture, GIANTS-4B outperforms both supervised baselines and larger proprietary models. We release
-              the dataset, models, and code to support future work on automated scientific discovery.
+              Scientific breakthroughs often emerge by synthesizing prior ideas into novel contributions. GIANTS asks
+              whether language models can emulate this targeted form of scientific progress. We introduce
+              <strong>insight anticipation</strong>, a literature-grounded generation task in which a model receives
+              summaries of two parent papers and must predict the core contribution of a downstream paper that builds on
+              them. To study this setting, we construct <strong>GiantsBench</strong>, a benchmark of 17,839
+              parent-downstream tuples spanning eight broad scientific areas, and evaluate generations with an LM judge
+              whose scores correlate with human expert ratings. We also present <strong>GIANTS-4B</strong>, a
+              4B-parameter model trained with reinforcement learning to optimize semantic similarity to the target
+              insight. Despite its smaller open architecture, GIANTS-4B outperforms both supervised baselines and
+              larger proprietary models, including a 34% relative gain over Gemini-3-Pro on the main test set.
             </p>
           </div>
         </div>
@@ -179,36 +184,39 @@
           <h2 class="title is-3">Insight Anticipation</h2>
           <div class="content has-text-justified">
             <p>
-              The paper reframes automated scientific discovery as a targeted synthesis problem. Rather than asking a
-              model to brainstorm in the abstract, it asks whether the model can infer the next scientific step once
-              the relevant intellectual lineage is fixed.
+              GIANTS reframes automated scientific discovery as targeted synthesis rather than unconstrained
+              brainstorming. The core question is simple: once the relevant lineage is fixed, can a model infer the next
+              scientific leap?
             </p>
             <p>
-              Each example contains summaries of two parent papers as input and a standalone description of the
-              downstream paper's key contribution as the target. This isolates insight generation from the harder
-              retrieval problem of deciding which prior work matters.
+              Formally, each example maps two parent-paper summaries <code>(x_A, x_B)</code> to a standalone target
+              insight <code>y*</code>. This setup isolates insight generation from the harder retrieval problem of
+              deciding which prior work matters, making it possible to measure whether a model can combine two
+              foundations into a coherent, non-obvious downstream contribution.
             </p>
           </div>
 
           <div class="columns is-desktop tw-mt-6">
             <div class="column">
               <div class="box tw-h-full">
-                <h3 class="title is-5 tw-mb-2">Input</h3>
-                <p class="tw-text-gray-600">Two parent-paper summaries that define the scientific starting point.
+                <h3 class="title is-5 tw-mb-2">Input Context</h3>
+                <p class="tw-text-gray-600">Two parent-paper summaries whose ideas are jointly required for the
+                  downstream result.
                 </p>
               </div>
             </div>
             <div class="column">
               <div class="box tw-h-full">
-                <h3 class="title is-5 tw-mb-2">Target</h3>
-                <p class="tw-text-gray-600">A self-contained statement of the downstream paper's core contribution.</p>
+                <h3 class="title is-5 tw-mb-2">Oracle Target</h3>
+                <p class="tw-text-gray-600">A rewritten, self-contained statement of the downstream paper's core
+                  contribution.</p>
               </div>
             </div>
             <div class="column">
               <div class="box tw-h-full">
-                <h3 class="title is-5 tw-mb-2">Score</h3>
-                <p class="tw-text-gray-600">A 1-10 similarity rating comparing the generated insight to the ground-truth
-                  target.</p>
+                <h3 class="title is-5 tw-mb-2">Evaluation</h3>
+                <p class="tw-text-gray-600">A 1-10 LM-judge similarity score comparing the generated insight to the
+                  ground-truth target.</p>
               </div>
             </div>
           </div>
@@ -224,15 +232,16 @@
           <h2 class="title is-3">GiantsBench</h2>
           <div class="content has-text-justified">
             <p>
-              GiantsBench is built from 17,839 arXiv papers updated between May 23, 2007 and January 23, 2026,
-              filtered to retain papers with at least two citations. For each downstream paper, an LM identifies two
-              cited parents whose ideas are combined synergistically, rewrites that synergy into a standalone target
-              insight, and summarizes the parent papers into compact model inputs.
+              GiantsBench is built from 17,839 arXiv papers whose latest update dates fall between May 23, 2007 and
+              January 23, 2026. The pipeline keeps papers with at least two citations, uses Gemini-2.5-Flash to
+              identify two explicitly cited parent papers and explain their synergy, summarizes each parent paper, and
+              rewrites the resulting downstream contribution into a standalone target insight.
             </p>
             <p>
-              Training is restricted to Language papers before the July 1, 2023 cutoff, while evaluation uses later
-              papers across domains. The paper also reports a stricter Test-unseen-parents split, where evaluation
-              parent papers never appear during training.
+              The main split is temporal. Training uses only <code>cs.CL</code> papers published before July 1, 2023,
+              yielding 10,335 examples. Evaluation uses 7,504 later papers across domains, plus a stricter
+              5,294-example <em>Test-unseen-parents</em> split where evaluation parent papers never appear during
+              training.
             </p>
           </div>
 
@@ -240,25 +249,25 @@
             <div class="column">
               <div class="box tw-h-full tw-flex tw-flex-col tw-justify-center">
                 <div class="title is-3 tw-text-gray-900">17,839</div>
-                <div class="tw-text-sm tw-text-gray-600">paper tuples collected</div>
+                <div class="tw-text-sm tw-text-gray-600">parent-downstream tuples</div>
               </div>
             </div>
             <div class="column">
               <div class="box tw-h-full tw-flex tw-flex-col tw-justify-center">
                 <div class="title is-3 tw-text-gray-900">10,335</div>
-                <div class="tw-text-sm tw-text-gray-600">training examples from cs.CL</div>
+                <div class="tw-text-sm tw-text-gray-600"><code>cs.CL</code> training examples</div>
               </div>
             </div>
             <div class="column">
               <div class="box tw-h-full tw-flex tw-flex-col tw-justify-center">
                 <div class="title is-3 tw-text-gray-900">7,504</div>
-                <div class="tw-text-sm tw-text-gray-600">future test examples</div>
+                <div class="tw-text-sm tw-text-gray-600">temporal test examples</div>
               </div>
             </div>
             <div class="column">
               <div class="box tw-h-full tw-flex tw-flex-col tw-justify-center">
                 <div class="title is-3 tw-text-gray-900">5,294</div>
-                <div class="tw-text-sm tw-text-gray-600">unseen-parent test examples</div>
+                <div class="tw-text-sm tw-text-gray-600"><em>Test-unseen-parents</em> examples</div>
               </div>
             </div>
           </div>
@@ -269,8 +278,9 @@
                 <img src="static/images/lm_vs_human_scatterplot.png"
                   alt="Scatter plot comparing LM similarity scores and human similarity scores." />
                 <p class="tw-text-left tw-text-xs tw-text-gray-500 tw-mt-4">
-                  <strong>Human validation of the judge.</strong> LM similarity scores track expert ratings well, with
-                  Spearman rho = 0.761 (p &lt; 0.001), supporting their use for both evaluation and reward design.
+                  <strong>Human validation of the judge.</strong> LM-judge scores are positively correlated
+                  with average human ratings (Spearman rho = 0.761, p &lt; 0.001; n = 60), supporting their use for
+                  both evaluation and reward design.
                 </p>
               </div>
             </div>
@@ -279,8 +289,8 @@
                 <img src="static/images/insight_generation_prompt.png"
                   alt="Prompt used for insight generation from two parent paper summaries." />
                 <p class="tw-text-left tw-text-xs tw-text-gray-500 tw-mt-4">
-                  <strong>Task prompt.</strong> The model receives two parent-paper summaries and is asked to generate a
-                  specific, self-contained insight that emerges only when the two are considered together.
+                  <strong>Task prompt.</strong> The model receives two parent-paper summaries and must
+                  generate a specific, self-contained insight that emerges only when both are considered together.
                 </p>
               </div>
             </div>
@@ -297,15 +307,16 @@
           <h2 class="title is-3">Training GIANTS-4B</h2>
           <div class="content has-text-justified">
             <p>
-              GIANTS-4B starts from Qwen3-4B and compares three training strategies: direct supervised fine-tuning on
-              the target insight, supervised fine-tuning with synthetic reasoning traces, and reinforcement learning
-              that optimizes semantic similarity to the downstream contribution.
+              GIANTS-4B starts from Qwen3-4B and compares three learning strategies: direct supervised fine-tuning on
+              the target insight, supervised fine-tuning with synthetic reasoning traces, and GRPO-based reinforcement
+              learning that optimizes semantic similarity to the downstream contribution.
             </p>
             <p>
-              The main takeaway is that imitation alone is not enough. Plain SFT underperforms, SFT-think yields only
-              modest gains, and the strongest model comes from GRPO-based reinforcement learning with LM similarity as
-              the reward. Training uses Gemini-2.5-Flash as the reward model, while final evaluation is reported with
-              separate judges, including Gemini-3-Pro and Qwen3-14B.
+              The central training result is that imitation alone is not enough. Plain SFT and SFT-think yield only
+              modest gains, whereas RL substantially improves performance by sampling candidate insights, scoring them
+              with an LM judge, and reinforcing the most semantically faithful generations. To limit reward overfitting,
+              training uses Gemini-2.5-Flash as the reward model, while final evaluation is reported with separate
+              judges including Gemini-3-Pro and Qwen3-14B.
             </p>
           </div>
 
@@ -313,15 +324,15 @@
             <div class="column">
               <div class="box tw-h-full">
                 <h3 class="title is-5 tw-mb-2">SFT and SFT-think</h3>
-                <p class="tw-text-gray-600">Directly distilling the answer, even with synthetic reasoning traces, does
-                  not reliably teach the model how to synthesize a new downstream insight.</p>
+                <p class="tw-text-gray-600">Direct distillation, even with synthetic reasoning traces, improves
+                  fluency more than true cross-paper synthesis.</p>
               </div>
             </div>
             <div class="column">
               <div class="box tw-h-full">
                 <h3 class="title is-5 tw-mb-2">RL via similarity optimization</h3>
-                <p class="tw-text-gray-600">GIANTS-4B samples candidate insights, scores them by semantic alignment
-                  with the real downstream contribution, and updates toward generations that better match it.</p>
+                <p class="tw-text-gray-600">GRPO teaches the model to connect the two parent papers in ways that more
+                  closely match the real downstream insight.</p>
               </div>
             </div>
           </div>
@@ -337,9 +348,10 @@
           <h2 class="title is-3">Experimental Results</h2>
           <div class="content has-text-justified">
             <p>
-              Two findings stand out: native insight anticipation is difficult even for frontier LMs, and
-              reinforcement learning closes much more of the gap than supervised imitation. GIANTS-4B leads on both
-              the full benchmark and the stricter unseen-parent split.
+              Insight anticipation is difficult even for strong frontier models: Gemini-2.5-Pro, Gemini-3-Pro, and the
+              Qwen3-4B base model all score in the mid-4s on a 10-point similarity scale. Reinforcement learning
+              changes that picture, lifting GIANTS-4B to 5.97 on the full test set and 6.11 on
+              <em>Test-unseen-parents</em>.
             </p>
           </div>
 
@@ -386,7 +398,8 @@
               </tbody>
             </table>
             <p class="tw-text-xs tw-text-gray-500 tw-mt-2">
-              Overall similarity scores summarized from the appendix tables. Higher is better.
+              Average similarity scores from Tables 2 and 3 in the paper, with Gemini-3-Pro as the judge. Higher is
+              better.
             </p>
           </div>
 
@@ -395,8 +408,9 @@
               alt="Domain-wise similarity comparison showing GIANTS-4B outperforming baseline models."
               class="mx-auto" />
             <p class="tw-text-left tw-text-xs tw-text-gray-500 tw-mt-4">
-              <strong>Main benchmark results.</strong> Across domains, GIANTS-4B outperforms the Qwen3-4B base model,
-              both supervised baselines, and proprietary alternatives under both Gemini-3-Pro and Qwen3-14B judges.
+              <strong>Main benchmark results.</strong> GIANTS-4B is the top model across arXiv evaluation
+              categories under both Gemini-3-Pro and Qwen3-14B judges, showing that the gains are not tied to a single
+              evaluator.
             </p>
           </div>
 
@@ -404,9 +418,8 @@
             <img src="static/images/all_domain_radar_comparison_gemini-3-pro-preview_vs_Qwen3-14B_unseen_parents.png"
               alt="Domain-wise similarity comparison on the unseen-parent subset." class="mx-auto" />
             <p class="tw-text-left tw-text-xs tw-text-gray-500 tw-mt-4">
-              <strong>Unseen-parent generalization.</strong> The same ordering holds when evaluation is restricted to
-              parent papers never seen during training, suggesting the model is learning transferable synthesis
-              behavior rather than memorizing seen lineages.
+              <strong>Unseen-parent generalization.</strong> The same ordering holds on
+              <em>Test-unseen-parents</em>, where none of the evaluation parent papers were observed during training.
             </p>
           </div>
 
@@ -416,8 +429,8 @@
                 <img src="static/images/win_rate_human_eval_similarity.png"
                   alt="Win rates for GIANTS-4B versus the base model according to LM and human judges." />
                 <p class="tw-text-left tw-text-xs tw-text-gray-500 tw-mt-4">
-                  <strong>Human and LM preference on similarity.</strong> In head-to-head comparisons against the base
-                  model, GIANTS-4B wins 71.4% of the time under the LM judge and 89.7% of the time under human
+                  <strong>Human and LM preference on similarity.</strong> In head-to-head comparisons against
+                  Qwen3-4B, GIANTS-4B wins 71.4% of the time under the LM judge and 89.7% of the time under human
                   evaluators.
                 </p>
               </div>
@@ -427,8 +440,9 @@
                 <img src="static/images/feasibility_bar_plot.png"
                   alt="Human evaluation of feasibility showing similar complexity and better conceptual clarity." />
                 <p class="tw-text-left tw-text-xs tw-text-gray-500 tw-mt-4">
-                  <strong>Feasibility human evaluation.</strong> Relative to the base model, GIANTS-4B produces ideas
-                  with comparable engineering complexity but clearer scope and stronger conceptual clarity.
+                  <strong>Feasibility human evaluation.</strong> Human raters find that GIANTS-4B outputs
+                  are similarly challenging to implement as the base model's, but more conceptually clear and better
+                  scoped.
                 </p>
               </div>
             </div>
@@ -440,8 +454,8 @@
                 <img src="static/images/best_at_k.png"
                   alt="Best-at-k plot showing GIANTS-4B outperforming baselines as more samples are drawn." />
                 <p class="tw-text-left tw-text-xs tw-text-gray-500 tw-mt-4">
-                  <strong>Inference-time scaling.</strong> GIANTS-4B stays ahead as more candidate insights are
-                  sampled, outperforming the base model and SciThinker-4B variants across best@k.
+                  <strong>Inference-time scaling.</strong> GIANTS-4B remains the strongest proposer as the
+                  sample budget grows, outperforming the base model and both SciThinker-4B variants across best@k.
                 </p>
               </div>
             </div>
@@ -504,8 +518,9 @@
                   </table>
                 </div>
                 <p class="tw-text-left tw-text-xs tw-text-gray-500 tw-mt-4">
-                  <strong>Independent quality evaluation.</strong> Under the SciJudge-30B framework from Tong et al.
-                  (2026), GIANTS-4B achieves a 62% overall win rate over the base model.
+                  <strong>Independent quality evaluation.</strong> Under the SciJudge-30B framework
+                  from Tong et al. (2026), GIANTS-4B wins 62% overall against the base model, with its largest margins
+                  in HCI, Theory, and non-CS categories.
                 </p>
               </div>
             </div>
@@ -522,9 +537,9 @@
           <h2 class="title is-3">Qualitative Comparison</h2>
           <div class="content has-text-justified">
             <p>
-              The qualitative examples make the same point in a different way. The base model often either restates the
-              parent papers or makes overconfident leaps beyond the evidence, while GIANTS-4B stays closer to the
-              source material and surfaces more concrete, mechanistic connections.
+              The qualitative examples show the same pattern as the aggregate results. The base model often either
+              paraphrases the parent papers or makes claims that outrun the evidence, whereas GIANTS-4B proposes
+              narrower, mechanistic hypotheses that stay grounded in the cited lineage.
             </p>
           </div>
           <div class="box tw-mt-6">
@@ -532,9 +547,9 @@
               alt="Qualitative comparison between the base model and GIANTS-4B on paper-lineage examples."
               class="mx-auto" />
             <p class="tw-text-left tw-text-xs tw-text-gray-500 tw-mt-4">
-              <strong>Example generations.</strong> On the showcased NeurIPS 2025 lineage examples, GIANTS-4B
-              identifies more grounded cross-paper mechanisms and avoids the unsupported extrapolation seen in the base
-              model.
+              <strong>Example generations.</strong> On two NeurIPS 2025 award-winning lineages, GIANTS-4B
+              recovers concrete cross-paper mechanisms and avoids the overly ambitious, less feasible extrapolations
+              produced by the base model.
             </p>
           </div>
         </div>
@@ -549,9 +564,8 @@
           <h2 class="title is-3">Prompt Pipeline</h2>
           <div class="content has-text-justified">
             <p>
-              Insight anticipation is implemented with a compact but deliberate prompt pipeline: identify two parent
-              papers, rewrite their synergy as a standalone target insight, generate candidate insights from the parent
-              summaries, and score the generations with an LM judge.
+              The dataset and training loop are driven by four coordinated prompts: parent identification, target
+              insight rewriting, insight generation, and similarity judging.
             </p>
           </div>
 
@@ -561,8 +575,8 @@
                 <img src="static/images/upstream_citation_prompt.png"
                   alt="Prompt for identifying two parent papers whose ideas combine into a child paper." />
                 <p class="tw-text-left tw-text-xs tw-text-gray-500 tw-mt-4">
-                  <strong>Parent identification prompt.</strong> Recovers two cited works whose ideas combine to
-                  support the downstream contribution.
+                  <strong>Parent identification prompt.</strong> Gemini-2.5-Flash identifies two cited
+                  parent papers whose ideas are synergistically combined by the downstream work.
                 </p>
               </div>
             </div>
@@ -571,8 +585,8 @@
                 <img src="static/images/rewrite_insight_prompt.png"
                   alt="Prompt for rewriting an insight into a standalone statement." />
                 <p class="tw-text-left tw-text-xs tw-text-gray-500 tw-mt-4">
-                  <strong>Rewrite prompt.</strong> Turns the raw synergy explanation into a clean, self-contained target
-                  insight.
+                  <strong>Rewrite prompt.</strong> The raw synergy explanation is rewritten into a clean,
+                  standalone target insight that does not explicitly mention the downstream paper.
                 </p>
               </div>
             </div>
@@ -581,8 +595,8 @@
                 <img src="static/images/insight_generation_prompt.png"
                   alt="Prompt for generating a downstream insight from two parent summaries." />
                 <p class="tw-text-left tw-text-xs tw-text-gray-500 tw-mt-4">
-                  <strong>Generation prompt.</strong> Defines the core insight-anticipation task used for both training
-                  and evaluation.
+                  <strong>Generation prompt.</strong> This is the core task prompt used for training and
+                  evaluation: generate a specific, non-obvious, self-contained insight from two parent summaries.
                 </p>
               </div>
             </div>
@@ -591,8 +605,9 @@
                 <img src="static/images/similarity_judge_prompt.png"
                   alt="Prompt for LM judging of similarity between generated and target insights." />
                 <p class="tw-text-left tw-text-xs tw-text-gray-500 tw-mt-4">
-                  <strong>Judge prompt.</strong> Produces the similarity score used for evaluation and as the
-                  reinforcement-learning reward.
+                  <strong>Judge prompt.</strong> The judge assigns a 1-10 similarity score to a generated
+                  insight relative to the ground-truth target; the same rubric is used as a reward signal during RL
+                  with a separate training judge.
                 </p>
               </div>
             </div>
@@ -609,14 +624,14 @@
           <h2 class="title is-3">Limitations and Future Work</h2>
           <div class="content has-text-justified">
             <p>
-              This formulation is intentionally conservative. Each downstream paper is explained using only two parents,
-              even though real scientific advances usually draw from broader and messier lineages. Citations are also
-              only a noisy proxy for true conceptual ancestry, and the benchmark assumes the right parent papers have
-              already been identified.
+              This formulation is intentionally conservative. Each downstream paper is reduced to two parent papers for
+              tractability, even though real scientific advances often draw on broader and noisier intellectual
+              lineages. Citations are only an imperfect proxy for conceptual ancestry, and the benchmark assumes the
+              relevant parents have already been identified.
             </p>
             <p>
-              A natural next step is an end-to-end discovery system that retrieves promising parent papers, synthesizes
-              candidate contributions, and evaluates them for novelty, plausibility, and scientific value within one
+              The natural next step is an end-to-end discovery system that retrieves promising parents, proposes
+              candidate insights, and evaluates them for novelty, plausibility, and scientific value within a single
               loop.
             </p>
           </div>
@@ -635,7 +650,7 @@
               <a href="mailto:heyueya@stanford.edu">Joy He-Yueya</a>,
               <a href="mailto:anikait@stanford.edu">Anikait Singh</a>
               <br />
-              This website is greatfully adapted on the template from <a href="https://nerfies.github.io/">Nerfies</a>.
+              This website is gracefully adapted from the template by <a href="https://nerfies.github.io/">Nerfies</a>.
             </p>
           </div>
         </div>
