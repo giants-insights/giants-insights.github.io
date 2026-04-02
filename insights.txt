@@ -1,0 +1,1823 @@
+GIANTS : Generative Insight Anticipation from
+Scientific Literature
+Joy He-Yueya*1 , Anikait Singh*1 , Ge Gao1 , Michael Y. Li1 , Sherry Yang2 , Chelsea Finn1 , Emma Brunskill1 , Noah D. Goodman1
+
+1 Stanford University, 2 New York University, * Equal contribution
+
+Scientific breakthroughs often emerge from synthesizing prior ideas into novel contributions. While
+language models (LMs) show promise in scientific discovery, their ability to emulate this targeted,
+evolutionary synthesis remains largely unexplored. We introduce insight anticipation, a novel literaturegrounded generation task that moves beyond open-ended brainstorming by challenging models to predict
+a downstream paper’s core contribution directly from the summaries of its foundational parent papers.
+To evaluate this capability, we develop GiantsBench, a large-scale benchmark comprising 17𝑘 tuples
+of parent and downstream papers across eight scientific domains. We assess performance using an
+LM judge to measure the similarity between generated and ground-truth insights, demonstrating a
+positive correlation with human expert evaluations. Finally, we present GIANTS-4B, an LM trained via
+reinforcement learning (RL) to optimize insight anticipation using these similarity scores as a proxy
+reward. Despite its smaller open-source architecture, GIANTS-4B significantly outperforms proprietary
+baselines, achieving a 34% relative increase in similarity score compared to gemini-3-pro. We release
+our code, dataset, and model to accelerate future research in automated scientific discovery.
+“If I have seen further than others, it is only because
+I was standing on the shoulders of giants”
+— Sir Isaac Newton
+
+1. Introduction
+Language Models (LMs) are maturing into powerful tools for scientific discovery [7]. Early milestones
+are striking, from virtual LM teams designing SARS-CoV-2 nanobody binders [21] to models proposing
+NLP research directions that human experts rate as genuinely novel [14]. However, these successes
+rely heavily on prompting existing frontier models that are extensively pre-trained on massive corpora
+of text. In contrast, human scientists achieve breakthroughs through a far more efficient process: by
+synthesizing profound insights from sparse and disparate sources. Emulating this human-like capability
+of conjecturing is not just a theoretical ideal; it is a practical necessity as LMs struggle to reliably generate
+ideas of true impact and value [15], often due to the lack of diversity and feasibility [23].
+To bridge this gap, we propose a new paradigm: insight anticipation. Rather than focusing on broad
+data assimilation, this setting tasks models with predicting the natural evolutionary trajectory of specific,
+existing research. This framing adopts the classical view of scientific progress as ‘standing on the shoulders
+of giants,’ where new contributions emerge by building incrementally upon prior foundations. Under this
+view, a paper’s value is defined by its relative advancement over the works it builds upon. Consequently,
+the challenge of automated discovery decomposes into two distinct subproblems: (1) parent selection, or
+identifying which prior works to build upon, and (2) insight generation, or synthesizing those works into
+a novel contribution.
+Corresponding author(s): heyueya@stanford.edu, anikait@stanford.edu.
+Project Website: https://giants-insights.github.io/
+
+gure 1
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+Dataset Construction
+Paper PDF
+
+① Key insight (y*)
+
+② Parent papers
+
+AlphaGo combines
+deep neural
+networks and selfplay reinforcement
+learning to achieve
+superhuman
+performance in Go…
+
+Use deep neural
+networks to predict
+strong moves and
+evaluate board
+positions, then improve
+them through self-play
+reinforcement
+learning...
+
+The key insight
+builds on ideas
+from paper A
+and paper B.
+
+LM research
+analyst
+
+Parent paper A
+
+LM paper
+summarizer
+
+Deep neural networks learn rich
+representations and predict promising
+actions from high-dimensional inputs…
+
+Parent paper B
+Self-play reinforcement learning can
+improve decision-making by learning
+directly from win–loss outcomes…
+
+Learning to Anticipate Insights
+Similarity score
+
+Insights
+
+Parent paper A
+
+Use DNNs for function
+approximation…
+
+Deep neural networks learn rich
+representations and predict promising
+actions from high-dimensional inputs…
+
+8
+LM judge
+
+5
+
+Monte Carlo Tree Search…
+
+…
+
+Parent paper B
+Self-play reinforcement learning can
+improve decision-making by learning
+directly from win–loss outcomes…
+
+GIANTS-4B
+
+How similar is this statement
+to the original insight y*? (1-10
+scale)
+
+Use supervised learning…
+
+3
+
+RL
+
+Figure 1: Overview of GiantsBench and GIANTS-4B. (top) For dataset construction, we use an LM as a research analyst
+
+to process each paper PDF to identify two parent papers whose ideas are synergistically combined to produce the paper’s key
+insight, which is extracted as the ground-truth target 𝑦 * . A second LM summarizes each parent paper. (bottom) Given the
+two parent summaries, the model generates candidate insights, which an LM judge scores by similarity to 𝑦 * on a 1–10 scale.
+These scores serve as a proxy reward for RL training, teaching the model to anticipate insights that more closely match real
+downstream papers.
+
+This motivates a fundamental feasibility question: if provided with the relevant lineage of background
+papers, can a model effectively predict the next logical leap? In this work, we focus exclusively on the
+generation phase. By assuming the "parent" papers are provided by an oracle literature selection criterion,
+we test a model’s capacity to transform these foundations into a downstream paper’s primary insight.
+While identifying optimal parent papers remains a complex challenge of scientific attribution, isolating
+the generation phase allows us to rigorously evaluate the creative potential of targeted synthesis, leaving
+retrieval strategies for future work.
+To evaluate insight anticipation models, we develop GiantsBench, a large-scale benchmark designed to
+evaluate the ability of models to synthesize two prior papers and derive the core insight of a downstream
+paper that builds on them (Figure 1, top). Unlike previous benchmarks that evaluate the ability of
+models to answer literature synthesis questions by identifying relevant papers and generating long-form
+responses with citations [2], GiantsBench assesses whether a model can combine two parent papers
+synergistically to derive insights that lead to a subsequent paper. GiantsBench comprises 17𝑘 input pairs
+of parent paper summaries and their corresponding downstream research insights, drawn from Computer
+Science, Economics, Electrical Engineering, Mathematics, Physics, Quantitative Biology, Quantitative
+Finance, and Statistics. We also introduce an automatic evaluation method that uses an LM judge to give
+a similarity score comparing the model-generated insight to the ground-truth insight. We conducted
+expert evaluations of the LM judge and found that LM scores and human scores are positively correlated
+(Spearman’s 𝜌 = 0.761, 𝑝 < 0.001).
+
+2
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+Furthermore, we introduce GIANTS-4B, a language model trained to generate the core insight of a
+future scientific paper given a set of prior papers via reinforcement learning (RL). By fine-tuning with
+GRPO [13] to maximize the similarity scores on the research insights, the model learns to reason about
+connections between the input papers and generate insights that are more similar to those from real
+downstream papers (Figure 1, bottom). This outperforms simply distilling the expert insight (even with
+reasoning traces).
+We evaluate proprietary and open LMs (e.g., gemini-2.5-pro, gemini-3-pro, Qwen3-4B) on GiantsBench. Qwen3-4B performs similarly as gemini-2.5-pro and gemini-3-pro, despite being
+a smaller open model, which shows that LMs are not simply getting better at insight anticipation via
+scaling. In contrast, our GIANTS-4B, which uses RL with similarity scores from the LM judge as a proxy
+reward, significantly improves insight anticipation.
+We summarize our main contributions as follows:
+• Novel paradigm for automated discovery: We introduce the task of insight anticipation, which
+isolates the creative synthesis phase of scientific progress by evaluating how effective a model is at
+predicting a downstream paper’s core insight conditioned on foundational parent papers.
+• GiantsBench and evaluation metric: We source a dataset of 17k tuples of parent and downstream papers from arXiv across eight domains and have an LM-based auto-evaluator to score the
+similarity between generated and ground-truth insights.
+• GIANTS-4B: We present a novel approach for training a model for insight anticipation based
+on semantic similarity and RL, outperforming a range of proprietary and open LMs such as
+gemini-3-pro.
+
+2. Defining and Instantiating a Benchmark for Insight Anticipation
+Task Definition. We introduce the setting of insight anticipation: given an input context with two paper
+summaries 𝑥 = (𝑥𝐴 , 𝑥𝐵 ) where 𝑥𝐴 is a summary of paper 𝐴, and 𝑥𝐵 is a summary of paper 𝐵, the goal
+is to generate the key insight of a downstream paper that builds on 𝐴 and 𝐵. We denote this ground
+truth downstream insight statement as 𝑦 * . 𝑦 * is an oracle insight that emerges only when both papers
+are considered together. This task requires the model to consider how 𝐴 and 𝐵 might jointly influence
+a downstream paper and generate a research insight/idea 𝑦^ that is semantically similar to 𝑦 * . This
+setup intentionally restricts the number of parents to two (as more papers lead to context management
+constraints for training and inference), making the task a conservative lower bound on the full problem.
+We do not address parent discovery, focusing instead on whether meaningful insight synthesis is possible
+given fixed inputs. Figure 10 shows the insight generation prompt we use for training or evaluating all
+models.
+Dataset Construction. We create a dataset {((𝑥𝐴 , 𝑥𝐵 )𝑖 , 𝑦𝑖* )}𝑁
+𝑖=1 as follows. We collect 17,839 papers
+from arXiv that are published between May 23rd, 2007, and January 23rd, 2026, according to their
+latest update date on arXiv. Since arXiv is not peer reviewed, the raw corpus may contain noisy or
+non-substantive documents. To mitigate this, we retain only papers with at least two citations.1 We
+download these papers as a PDF. For each paper, we prompt gemini-2.5-flash to identify two prior
+1
+
+We use citation counts from Semantic Scholar as a proxy for paper quality.
+
+3
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+papers that this paper explicitly cites and builds upon by combining their ideas in a synergistic way.
+We also ask gemini-2.5-flash to explain the synergy (see the full prompt in Figure 11). We then
+download the two parent papers as a PDF and use their content as input context 𝑥. Ideally, we would like
+to take the full paper content as input to the model and ask it to generate a downstream insight. However,
+given the context-length limitations of existing LMs as well as the high inference cost, we instead opt to
+prompt gemini-2.5-flash to summarize the paper. We then use paper summaries as the input. We
+use the following prompt to summarize each paper into key insights and contributions: “Summarize the
+document, clearly describing the method used and highlighting the key insights or findings. Provide sufficient
+detail so that the approach and main contributions are fully understood.” For 𝑦 * , we use the synergy
+explanation that is part of the output to the parent-identification prompt in Figure 11). We cannot use
+the raw explanation because it refers to a future downstream paper and talks about the insight in the
+context of the two parent papers. Instead, we would like the model to generate a standalone insight
+statement directly from the two parent papers alone. Therefore, we prompt gemini-3-pro to rewrite
+the insight and explanation without reference to the downstream paper (see prompt in Appendix C.4).
+After constructing all (𝑥, 𝑦 * ) pairs, for each unique pair of parent papers 𝑥 = (𝑥𝐴 , 𝑥𝐵 ), we keep the insight
+𝑦 * from the most cited downstream paper in order to prioritize generating more impactful insights.
+
+Human avg. similarity score
+
+10 = 0.76
+Temporal Hold-Out Evaluation. To more rigorously assess generalization, we conduct all evaluations on a future
+8
+held-out test set consisting of downstream papers published
+after the training cutoff date. We split the dataset by the
+6
+publication date of the downstream paper in each (𝑥, 𝑦 * )
+pair. Papers published before July 1st, 2023 are used for
+4
+training. To study the ability of models to generalize to new
+domains, we restrict the training set to papers tagged with
+cs.CL (Computation and Language), yielding 𝑁 = 10,335
+2
+training examples. For evaluation, we consider papers published after July 1, 2023 and randomly sample up to 600
+2 4 6 8 10
+LM similarity score
+papers from each domain (see the category taxonomy in Appendix A), resulting in a test set of 7,504 papers. No papers
+from this test set are seen during training, though some of Figure 2: Human experts align with LM judge.
+them may share at most 1 parent paper with the papers in LM similarity scores are positively correlated with
+human similarity scores (Spearman 𝜌 = 0.761, 𝑝 <
+the training set. We also conduct evaluations on a subset of 0.001, 𝑛 = 60).
+the test set that does not have any overlapping parents with
+those in the training set. We call the subset Test-unseen-parents (𝑁 = 5,294).
+Evaluation Metric. For each generation, we prompt an LM judge to give a similarity score ranging
+from 1 to 10 (higher is better) comparing the model-generated insight to the ground-truth insight 𝑦 * .
+We use gemini-3-pro as the judge model (see Figure 12 for the prompt). To assess the reliability
+of the LM-based evaluation, we conduct a human evaluation study on 30 pairs of insights generated
+by Qwen3-4B and GIANTS-4B (𝑛 = 60). Two human annotators, who are PhD students in Computer
+Science, independently rate the similarity between model-generated insights and ground-truth insights
+using the same rating scale as the LM judge. The LM’s scores show a statistically significant positive
+correlation with the average scores across human annotators (Figure 2). In particular, we observe a
+
+4
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+Spearman rank correlation of 𝜌 = 0.761 (𝑝 < 0.001). More details can be found in Appendix E.
+Takeaways of Insight Anticipation Instantiation
+We introduce the insight anticipation task, which challenges models to generate a future research
+insight by synthesizing the summaries of two parent papers. To evaluate this, we construct
+a dataset of over 17k arXiv paper triplets with LLM-extracted ground truths, utilizing a strict
+temporal/cross-domain hold-out split and a human-validated LLM judge for robust scoring.
+
+3. Training an Insight Anticipator
+We explore two primary training paradigms to optimize GIANTS-4B for insight anticipation: (1) distillation via supervised fine-tuning (SFT), leveraging ground-truth insights and rationalization from target
+papers, and (2) reinforcement learning (RL) for insight anticipation via similarity optimization. Across
+all experiments, we adopt Qwen3-4B as our base model. Next, we will detail the specific formulations of
+these training methodologies.
+3.1. Ground Truth Insight Distillation via Supervised Fine-Tuning (SFT)
+The objective of our SFT pipeline is to adapt the base language model to synthesize a cohesive, derivative
+insight given the textual context of two source papers. We investigate two distinct SFT strategies to
+achieve this. In our standard SFT approach, the model is directly fine-tuned to map the input context
+(summaries of parent papers), 𝑥, to the target ground-truth insight, 𝑦 * (derived from the target paper).
+This process optimizes the standard negative log-likelihood loss for autoregressive LMs over the paired
+examples (𝑥, 𝑦 * ).
+To bridge the logical gap between the source papers and the final insight, we also evaluate an SFT
+strategy enhanced with chain-of-thought reasoning [26], which we denote as SFT-think. In this setup,
+we introduce an intermediate synthetic rationalization step, 𝑧. To generate a supervision target, we
+prompt a high-capacity teacher model (gemini-3-pro) to generate a detailed chain-of-thought that
+logically deduces the ground-truth insight conditioned on the parent paper summaries (as detailed in
+Section 2). The base model is then trained to sequentially predict the rationale followed by the final
+insight, utilizing the augmented tuples (𝑥, 𝑧, 𝑦 * ). This approach explicitly encourages the model to
+internalize the step-by-step inferential process rather than merely memorizing the final output mapping.
+This follows distillation approaches in reasoning as seen in works such as OpenThoughts [6] and s1 [9].
+3.2. Reinforcement Learning for Insight Anticipation via Similarity Optimization
+So far, we have explored distilling insights via supervised fine-tuning (SFT). However, in complex tasks
+such as scientific discovery, the target paper’s insights can be difficult to clone directly. This difficulty often
+arises when the target insight has low likelihood under the policy, or when the model lacks the capacity
+to adequately capture the distribution of the parent insight. Can we instead consider an alternative
+approach that relies on reinforcement learning to recover the performance of the target paper’s insights?
+To address this, we employ an alternative approach: using the target paper’s insights 𝑦 * to define a proxy
+reward via a semantic similarity metric. Formally, given an insight from the target paper 𝑦 * , we define
+
+5
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+Mathematics
+Mathematics
+Quant. Finance
+Theory
+Quant. Finance
+Theory
+8
+8
+ML/AI
+Vision
+ML/AI
+Vision
+7
+7
+6
+6
+Systems
+Language
+Systems
+Language
+5
+5
+4
+4
+3
+3
+Society
+Economics Society
+Economics
+Physics
+
+CS-Other
+
+Robotics
+
+Quant. Biology
+
+EE & Sys. Sci.
+Base
+
+SFT
+
+HCI
+
+Physics
+
+CS-Other
+
+Robotics
+
+Statistics
+
+Quant. Biology
+
+EE & Sys. Sci.
+
+SFT-think
+
+gemini-2.5-pro
+
+Statistics
+HCI
+gemini-3-pro-preview
+
+GIANTS-4B
+
+Figure 3: Insight anticipation for arXiv domains. GIANTS-4B has a higher similarity score to the target insight, outperforming SFT, SFT-Think, and the base model (Qwen3-4B) for two different judge models. The relative ordering of similarity scores
+for each domain, judged by gemini-3-pro (left) matches the ordering of similarity scores judged by Qwen3-14B (right).
+
+the proxy reward for a predicted insight 𝑦^ as:
+𝑟sim (^
+𝑦 ) = similarity(^
+𝑦, 𝑦*)
+
+(1)
+
+where similarity measures the semantic equivalence between the generated insight and target insights
+measured using an LM-as-a-Judge [5], matching the evaluation criterion in Section 2. Furthermore,
+for further robustness and reducing order bias, we supply the LM with insights twice (^
+𝑦 first, and 𝑦 *
+first), taking the average over the individual similarity scores to compute the proxy reward. This proxy
+reward is then optimized via RL to recover the behavior of the ground-truth insight of the child paper
+conditioned on the two prespecified parent papers.
+More concretely, we train GIANTS-4B using Group Relative Policy Optimization (GRPO) [13], utilizing
+an LM as a proxy reward function. Specifically, for each input context 𝑥, we sample a group of 𝐺 = 8
+candidate insights from the active policy. An LM judge evaluates these candidates and assigns scalar
+rewards based on a predefined similarity score metric (illustrated in Figure 1, bottom). GRPO is wellsuited for this setup because it optimizes the policy relative to the sampled group, thereby removing the
+need to train and maintain a separate, memory-intensive value function model.
+Crucially, to mitigate the risk of reward hacking and ensure a rigorous evaluation, we enforce a strict
+separation between the training and testing judges. We deploy gemini-2.5-flash as the active reward
+model during GRPO training, while reserving the independent gemini-3-pro model exclusively for the
+final evaluation phase. This decoupling guarantees a more objective, unbiased assessment of the model’s
+true generalization capabilities. We additionally evaluate with other LM judges (e.g., Qwen3-14B) to
+showcase robustness across model families.
+Takeaways of Training an Insight Anticipator
+We optimize our insight anticipator using reinforcement learning to maximize semantic similarity
+to target insights. We strictly separate the LLM judges used for training and final evaluation.
+
+6
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+Mathematics
+Mathematics
+Quant. Finance
+Theory
+Quant. Finance
+Theory
+8
+8
+ML/AI
+Vision
+ML/AI
+Vision
+7
+7
+6
+6
+Systems
+Language
+Systems
+Language
+5
+5
+4
+4
+3
+3
+Society
+Economics Society
+Economics
+Physics
+
+CS-Other
+
+Robotics
+
+Quant. Biology
+
+EE & Sys. Sci.
+Base
+
+SFT
+
+HCI
+
+Physics
+Robotics
+
+Statistics
+SFT-think
+
+CS-Other
+Quant. Biology
+
+EE & Sys. Sci.
+gemini-2.5-pro
+
+Statistics
+HCI
+gemini-3-pro-preview
+
+GIANTS-4B
+
+Figure 4: Similarity scores on Test-unseen-parents. This is the subset of GiantsBench test set with only unseen parent
+
+papers, where GIANTS-4B outperforms the base model and SFT both when judged by gemini-3-pro (left) and Qwen3-14B
+(right).
+
+4. Experimental Evaluation on GiantsBench
+The objective of our experimental evaluation is to assess the efficacy of GIANTS-4B in generating novel
+and plausible scientific insights through the synthesis and expansion of existing literature. We perform a
+comparative analysis of our approach against both state-of-the-art proprietary models and high-performing
+open-weight baselines using the GiantsBench dataset. Specifically, our experiments are designed to
+address the following research questions: (1) Can current frontier and open-source language models
+natively generate high-quality scientific insights? (2) Does directly optimizing for insight similarity using
+reinforcement learning (GIANTS-4B) improve idea synthesis compared to standard imitation learning?
+and (3) Can a model trained to synthesize insights in a single domain generalize its capabilities to unseen
+domains?
+
+100
+80
+Win rate (%)
+
+1) Insights generation is a challenging task even for large
+proprietary models. Despite their success across diverse
+NLP benchmarks, current frontier models exhibit significant
+limitations in native idea synthesis. For instance, Qwen3-4B
+achieves an average similarity score of only 4.75 (Figure 3).
+Based on our LLM-based evaluation rubric (Figure 12), a
+score in this range indicates that while generated insights
+may align topically with the ground truth, they fail to capture the core scientific contribution or technical nuance.
+Notably, significantly larger proprietary models, such as
+gemini-2.5-pro and gemini-3-pro, perform similarly
+to the smaller Qwen3-4B baseline. This finding suggests
+that scientific ideation capabilities do not scale linearly with
+model size alone, reinforcing the necessity for specialized
+training paradigms like GIANTS-4B.
+
+GIANTS-4B
+Base
+
+60
+40
+20
+0
+
+LM judge
+
+Human judge
+
+Figure 5: Win rates for GIANTS-4B GIANTS-4B
+
+achieves a higher win rate for similarity than the
+base model for both the LM and Human judge.
+
+7
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+100
+
+Baseline
+
+Win rate (%)
+
+80
+60
+40
+20
+0
+
+HCI
+
+ory
+
+The
+
+-cs
+
+non
+
+CS-
+
+r
+
+e
+Oth
+
+AI
+ML/
+
+ge
+iety
+gua
+Soc
+n
+a
+L
+
+n
+
+o
+Visi
+
+s
+
+tem
+
+Sys
+
+tics
+
+o
+Rob
+
+rall
+
+Ove
+
+Figure 7: GIANTS-4B achieves a 62% overall win rate against the Base model using SciJudge-30B. We evaluate
+
+GIANTS-4B utilizing the judge framework from Tong et al. [22], originally optimized for citation count prediction. While
+performance varies by domain, reaching up to a 76% win rate in HCI but dropping to 37% in robotics, GIANTS-4B maintains a
+
+2) Directly optimizing similarity scores significantly improves insight generation Our primary finding is that
+GIANTS-4B achieves the highest performance among all
+tested methods. By directly optimizing for similarity scores
+via reinforcement learning (RL), GIANTS-4B yields a relative improvement of 28% on the full test set (Figure 3)
+and 34% on the subset containing only unseen parent papers (Figure 4) over gemini-3-pro. In contrast, standard
+supervised fine-tuning (SFT) on ground-truth insights actually degrades performance, while the SFT-think variant
+only achieves parity with the base model. These results suggest that standard imitation learning is largely ineffective
+for this synthesis task; however, our RL framework successfully aligns the model’s capabilities with high-quality human
+insights. This performance trend remains robust as we increase the number of samples to optimize the similarity
+score via inference-time scaling, as illustrated in Figure 8.
+
+Average rating
+
+robust overall win rate of 62%.
+
+8
+7
+6
+5
+4
+3
+2
+1
+0
+
+GIANTS-4B
+Base
+
+Engineering /
+Conceptual clarity /
+algorithmic complexity
+scope
+
+Figure 6: Feasibility Human Eval Humans gauge
+
+the feasibility of a generated insight in 2 axes: (1)
+engineering/algorithmic complexity & (2) conceptual clarity/scope, finding GIANTS-4B generates
+insights with similar algorithmic complexity and
+better clarity.
+
+To further validate these gains, we employed the judge framework from Tong et al. [22] as an independent
+third-party evaluation of paper quality. In this setup, the judge model is fine-tuned to predict which
+of two papers is more likely to receive higher citations. We found that optimizing our similarity-based
+metric allows GIANTS-4B to achieve a 62% win rate over the base model across 𝑛 = 500 insights across
+CS disciplines (Figure 7). This evaluation accounts for potential biases, as in our similarity scoring, by
+ensuring order invariance and by filtering out inconsistent judgments.
+We supplemented this automated evaluation with two independent preliminary human studies to assess
+the real-world impact of our method. First, we measured the win rate of GIANTS-4B against the base
+model specifically regarding alignment with the downstream paper’s actual insights (Figure 5). In
+this head-to-head comparison, GIANTS-4B achieved a 71.4% win rate according to an LM judge and
+a 89.7% win rate according to human evaluators. Finally, we assessed the feasibility of the generated
+insights across two axes: algorithmic complexity and conceptual clarity. Our analysis indicates that
+
+8
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+while GIANTS-4B produces insights of similar algorithmic complexity to the base model, it significantly
+improves conceptual clarity, making the generated ideas more interpretable and actionable. Further
+details regarding the human study methodology are provided in Appendix E.
+Base
+SciThinker-4B (single)
+
+SciThinker-4B (both)
+GIANTS-4B
+
+8
+Best@k (similarity score)
+
+3) GIANTS-4B zero-shot generalizes to new domains and
+distribution of parent papers. Crucially, the synthesis capabilities acquired by GIANTS-4B are not restricted to its
+training data. Although trained exclusively on papers from
+the Language domain (CS.CL), we observed consistent performance gains across all evaluated disciplines as seen in
+Figure 3, including Physics, Quantitative Biology, and Economics. This suggests that the model learns a generalizable
+mechanism for combining disparate ideas rather than memorizing domain-specific heuristics. Furthermore, Figure 3
+and 4 show the generalization on fully held out papers that
+appear temporally after the distribution of papers in the
+training set.
+
+7
+6
+5
+4
+3
+
+1
+
+2
+
+4
+
+8
+
+16
+
+Evaluation reliability check. To ensure our findings are
+k (number of samples)
+robust and that similarity scores are not biased toward the
+specific judge model that was used during training, we con- Figure 8: Test Time Inference of GIANTS-4B.
+ducted a cross-model validation using an independent judge, GIANTS-4B consistently outperforms the base
+Qwen3-14B (Figure 3, right). This secondary evaluation model and other insight proposer methods such as
+corroborated our primary findings, ranking GIANTS-4B as SciThinker-4B [22], which is optimized for citation
+count (provided a single or both parent papers).
+the top-performing model across all metrics, albeit with a
+slightly more compressed performance margin. We also report results under three additional judge
+models in Appendix D, with consistent findings across model sizes.
+Qualitative Comparison of Models We present qualitative examples to demonstrate that our generated
+insights meaningfully integrate concepts from prior literature. To study this, we use NeurIPS 2025
+award-winning papers as representative high-quality source material and compare the insights produced
+by GIANTS-4B against those generated by Qwen3-4B.
+First, Figure 9 (left) highlights an insight derived from two prior works [8, 24]. While the base model
+merely summarizes the parent papers without synthesizing a novel perspective, GIANTS-4B proposes
+a concrete mechanistic connection between the two studies that goes beyond the parent papers. Next,
+Figure 9 (right) examines an insight based on two different papers [11, 27]. Here, the base model generates an overly ambitious claim, suggesting that gating mechanisms expand reasoning boundaries in ways
+that RLVR cannot, which is unsupported by the source texts. In contrast, GIANTS-4B remains grounded
+in the actual findings while still identifying a non-trivial connection: that attention gating may dictate
+how effectively reinforcement learning concentrates probability mass across useful reasoning trajectories.
+This comparison underscores a critical distinction between boldness and genuine insightfulness. Whereas
+the base model’s novelty relies on unsupported extrapolation, GIANTS-4B maintains a narrower scope
+to identify a highly plausible interaction between the foundational works.
+Overall, these two examples showcase the qualitative differences between the base model and GIANTS-4B,
+underscoring the properties of diversity and feasibility that are present in the insights that are generated.
+
+9
+
+gure 1
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+Example 1
+
+Example 2
+
+Paper 1:
+Scaling network depth up to 1024 layers in contrastive reinforcement learning yields 2–
+50x performance gains and emergent complex behaviors across locomotion and
+manipulation tasks.
+
+Paper 1:
+RLVR training improves how efficiently LLMs sample correct answers but doesn't expand
+their underlying reasoning capabilities beyond what the base model already knows, as
+shown by base models outperforming RLVR models at high pass@k.
+
+Paper 2:
+Representation superposition, where models encode more features than their hidden
+dimensions, mechanistically explains neural scaling laws in LLMs, with strong
+superposition producing robust inverse-dimension loss scaling regardless of data
+distribution.
+
+Paper 2:
+Adding a head-specific sigmoid gate after the scaled dot-product attention output boosts
+LLM performance, training stability, and long-context extrapolation by introducing
+beneficial non-linearity and input-dependent sparsity that mitigates attention sinks.
+
+Base
+The depth scaling in self-supervised reinforcement
+learning (Paper 1) and the model size scaling in large
+language models (Paper 2) both rely on a shared
+principle of **representation superposition**, but their
+mechanisms diverge based on the nature of the
+environment. In Paper 1, deeper networks enable **richer
+contrastive representations** that capture complex
+environmental topologies (e.g., maze layouts), which
+aligns with the "strong superposition" regime in Paper 2,
+where overlapping representations in LLMs allow robust
+power-law scaling of loss with model size. However,
+Paper 1’s depth scaling achieves this through
+**synergistic exploration and expressivity**, whereas
+Paper 2’s strong superposition depends on **geometric
+overlaps** between representation vectors. This
+suggests that in RL, depth scaling enhances the agent’s
+ability to explore and generalize through **targeted
+representational capacity allocation**, while in LLMs,
+strong superposition leverages **heterogeneous
+representation vectors** to handle diverse data. The
+critical distinction lies in how these scaling strategies
+interact with the environment’s structure: depth in RL
+unlocks emergent behaviors via **partial experience
+stitching**, while LLMs’ superposition ensures
+**robustness across varied data distributions**.
+Together, this implies that **scaling strategies in
+different modalities (RL vs. LLMs)** can be unified under
+the concept of **representation superposition**, but their
+effectiveness hinges on the specific interplay between
+model capacity, environmental complexity, and the
+underlying representation mechanisms.
+
+GIANTS-4B
+
+Base
+
+Deep neural networks learn rich
+representations and predict promising
+actions from high-dimensional inputs…
+By synthesizing the *representation
+superposition* mechanism from Paper 2
+(LLMs) with the *depth-driven scaling*
+from Paper 1 (self-supervised RL), we
+uncover a novel hypothesis: deep,
+residual-structured networks in goalconditioned RL could *explicitly encode
+geometrically rich, superposed stateaction-goal embeddings* that align with
+the *power-law loss scaling* observed in
+LLMs. This would mean that increasing
+network depth in Paper 1’s CRL
+framework not only enhances policy
+expressivity but also *systematically
+improves the model’s ability to generalize
+across unseen trajectories* by leveraging
+the *representation redundancy* and
+*interference patterns* inherent to
+superposition. The key implication is that
+the *contrastiv e alignment* of
+embeddings in Paper 1’s InfoNCE objective
+could be interpreted as a *formalization
+of superposition*, where deeper networks
+better “stitch” partial experiences into a
+coherent, high-capacity latent space,
+mirroring the scaling laws of LLMs.
+
+The integration of gating mechanisms
+(as shown in Paper 2) with the base
+model's attention dynamics can enhance
+its reasoning capacity in ways that RLVR
+(Paper 1) does not achieve. While RLVR
+primarily sharpens the base model's
+prior distribution toward high-reward
+paths without introducing new
+reasoning patterns, the head-specific
+sigmoid gate applied after SDPA output
+(G1) in Paper 2 introduces inputdependent sparsity and non-linearity.
+This alters the base model's attention
+dynamics, enabling it to focus on critical
+reasoning paths more effectively and
+mitigate issues like "attention sink" or
+"massive activation." By doing so, the
+gating mechanism allows the base
+model to solve problems that require
+nuanced, multi-step reasoning without
+relying on RLVR's sampling efficiency
+gains, suggesting that attentional
+sparsity and non-linearity can expand
+the base model's reasoning boundary in
+a fundamentally different way than
+reinforcement learning. This implies a
+new research direction: combining
+gating-based attention optimization
+with distillation or other knowledge
+transfer methods to achieve both
+efficiency and novel reasoning in LLMs.
+
+GIANTS-4B
+By merging the two studies, we uncover a hidden interplay
+between how LLMs reason and how their internal attention
+mechanisms shape that reasoning. When a model’s attention
+is gated to focus on relevant information (as shown in Paper
+2), its underlying reasoning paths—measured by metrics like
+`pass@k` from Paper 1—become more structured and efficient.
+This gating, for example, might filter out noise or irrelevant
+tokens, allowing the model to sample fewer but more accurate
+reasoning steps during reinforcement training. In Paper 1,
+RLVR’s “improvement” is often attributed to refining existing
+reasoning patterns, but with optimized attention, those
+patterns could align more closely with true logical structures,
+making the model’s reasoning *appear* more robust even if
+it’s still constrained by the base distribution.
+The results suggest that the attention layer’s dynamics
+directly influence the “reasoning boundary” discussed in
+Paper 1. A gate that sparsely prioritizes key information (like
+query-dependent features) could narrow the set of solvable
+problems in a way that complements RLVR’s focus on
+sampling efficiency. For instance, a model with better
+attention might generate fewer but more reliable CoT steps,
+improving `pass@k` at lower `k` values without expanding
+the set of solvable problems. This synergy implies that future
+work could combine RLVR with attentional refinements to not
+just “narrow” reasoning but *refine* it, enabling models to
+handle complex tasks with fewer, more targeted attempts. The
+insight also hints that attention-based mechanisms like gating
+could act as a bottleneck for reasoning expansion, where
+RLVR’s reinforcement is limited by the model’s ability to focus
+on the right information, not just the right rewards.
+
+Figure 9: Qualitative comparison of insights derived from NeurIPS 2025 award-winning papers. (Left) GIANTS-4B
+
+identifies a more concrete cross-paper mechanism than the base model (Qwen3-4B). (Right) GIANTS-4B produces a grounded,
+meaningful contribution, avoiding the overly ambitious and infeasible propositions generated by the base model.
+
+Takeaways of Experimental Evaluation
+
+GIANTS-4B significantly outperforms both frontier models and supervised fine-tuning at generating
+
+feasible, high-quality scientific insights. Furthermore, despite training exclusively on a single
+domain, the model successfully zero-shot generalizes its synthesis capabilities across diverse,
+unseen scientific disciplines and temporally held-out literature.
+
+5. Related Work
+AI for Research. Many works have studied how to use LMs for different components of the scientific
+research pipeline, including literature search [10, 28], idea generation [14, 25], and idea execution
+[7, 15, 16]. A concurrent work trains models to judge research impact from citation signals, then uses
+the learned judge as a reward model for idea generation [22]. In contrast, we focus on the problem of
+synthesizing insights from two parent papers, using similarity to ground-truth downstream insights as a
+more direct training signal. A recent line of work studies scientific progress as a forecasting problem. Most
+closely related concurrent work introduces PreScience, a benchmark that decomposes the research
+process into collaborator prediction, prior work selection, contribution generation, and impact prediction
+[1]. In their contribution generation task, models generate a future paper’s title and abstract conditioned
+on prior work and other historical context, and are evaluated using an LM-based similarity metric. Our
+work is complementary but more focused: rather than modeling the full scientific workflow, we isolate
+
+10
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+the idea-synthesis problem and ask whether a model can generate the core insight of a downstream
+paper from a given pair of parent papers. Thus, while PreScience studies broad scientific forecasting,
+we study a more controlled and direct test of whether models can synthesize a novel downstream insight
+from specific prior works.
+Literature-based Discovery. Literature-Based Discovery (LBD) is a field that involves using computational methods to uncover hidden links between seemingly unrelated bodies of research, aiming to infer
+novel and interesting knowledge [18, 20]. For instance, [19] noticed that papers on fish oil mentioned
+it reduces blood viscosity, while others linked high blood viscosity to Raynaud’s syndrome. Therefore,
+[19] hypothesized that fish oil could treat Raynaud’s, a prediction later confirmed by clinical research.
+However, existing LBD approaches struggle to scale to the massive volume of today’s literature and often
+rely on domain-specific knowledge sources. Moreover, they typically output only ranked lists of candidate
+connections rather than clear, hypothesis-like insights that researchers can act on [3, 4, 12, 17].
+
+6. Discussion, Limitations, Future Work
+In this work, we introduced insight anticipation as a measurable paradigm for automated scientific
+discovery. By isolating the insight generation phase, we demonstrated that models can effectively
+synthesize the core insight of a downstream paper when provided with its foundational parent papers.
+Our results using GIANTS-4B indicate that the trajectory of scientific intuition is partially predictable,
+and that optimizing language models via reinforcement learning with similarity-based rewards is a highly
+effective training strategy for this task. However, this foundational formulation leaves several important
+limitations and open questions.
+One limitation of the work is that we assume that downstream contributions derive from two parent
+papers due to context constraints, despite research ideas being heavily shaped by broader intellectual
+contexts. Furthermore, parent identification is imperfect. Citations do not always reflect true conceptual
+influence, and influential ideas may remain uncited. Finally, by assuming an oracle literature selection
+criterion, we explicitly decoupled insight generation from parent selection, which may not be feasible for
+some scientific tasks.
+Future research can integrate automated retrieval systems to unify parent selection and synthesis within
+a single end-to-end framework. Additionally, extending the task to accommodate multi-source lineage
+and developing evaluation metrics that prioritize conceptual novelty over textual similarity could be
+interesting. Ultimately, testing these models in active, human-in-the-loop research settings will determine
+their true potential as catalysts for scientific discovery.
+
+7. Ethics Statement
+This research involves training the GIANTS-4B model on a dataset of 17,839 publicly available arXiv preprints to synthesize scientific insights. While automating scientific ideation offers significant potential for
+discovery, it raises important ethical considerations regarding the proper attribution of foundational ideas,
+especially since academic citation graphs can be noisy and may not always reflect true conceptual influence.
+Additionally, there is an inherent risk of language models generating plausible but unverified scientific
+claims; our framework mitigates this by using reinforcement learning to directly align model outputs
+with grounded, human-derived insights. Finally, we acknowledge the environmental and computational
+11
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+costs associated with training models on high-performance GPUs, though utilizing a more efficient 4B
+parameter architecture helps limit this footprint compared to massive proprietary models.
+
+8. Reproducibility Statement
+To ensure the reproducibility of our results, we provide a comprehensive account of our methodology, code,
+and data. The source code for our models and experiments is available in the supplementary materials
+and at the following repository: https://github.com/ and our benchmark and model weights can
+be found in the following huggingface respository: https://huggingface.co/giants2026. Our
+implementation is built upon the verl framework (https://verl.readthedocs.io/en/latest/).
+All experimental details, including hyperparameter settings, are documented in Appendix C.5. The
+computational experiments were conducted on a machine with NVIDIA A100 GPUs, and the required
+software dependencies are listed in the requirements.txt file within our code repository. The datasets used
+in our experiments will be made publicly available. We include samples of the dataset in the Appendix
+along with specific splits and any preprocessing steps applied to the data.
+
+9. Acknowledgments
+We thank Shirley Wu, Chenglei Si, Ryan Louie, Rui Li, Aviral Kumar, and Andreas Stuhlmüller and others
+in the Stanford Coco Labs and Iris Labs for discussions and feedback. This work was supported by the
+Junglee Corporation Stanford Graduate Fellowship. AS gratefully acknowledges the support of the NSF
+Graduate Research Fellowship Program. CF was supported by Schmidt Sciences.
+
+12
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+References
+[1] Anirudh Ajith, Amanpreet Singh, Jay DeYoung, Nadav Kunievsky, Austin C Kozlowski, Oyvind
+Tafjord, James Evans, Daniel S Weld, Tom Hope, and Doug Downey. Prescience: A benchmark for
+forecasting scientific contributions. arXiv preprint arXiv:2602.20459, 2026.
+[2] Akari Asai, Jacqueline He, Rulin Shao, Weijia Shi, Amanpreet Singh, Joseph Chee Chang, Kyle
+Lo, Luca Soldaini, Sergey Feldman, Mike D’Arcy, et al. Synthesizing scientific literature with
+retrieval-augmented language models. Nature, pages 1–7, 2026.
+[3] Tanja Bekhuis. Conceptual biology, hypothesis discovery, and text mining: Swanson’s legacy.
+Biomedical digital libraries, 3(1):2, 2006.
+[4] Murat C Ganiz, William M Pottenger, and Christopher D Janneck. Recent advances in literature
+based discovery. Journal of the American Society for Information Science and Technology, JASIST
+(Submitted), 2005.
+[5] Jiawei Gu, Xuhui Jiang, Zhichao Shi, Hexiang Tan, Xuehao Zhai, Chengjin Xu, Wei Li, Yinghan
+Shen, Shengjie Ma, Honghao Liu, Saizhuo Wang, Kun Zhang, Yuanzhuo Wang, Wen Gao, Lionel Ni,
+and Jian Guo. A survey on llm-as-a-judge, 2025. URL https://arxiv.org/abs/2411.15594.
+[6] Etash Guha, Ryan Marten, Sedrick Keh, Negin Raoof, Georgios Smyrnis, Hritik Bansal, Marianna
+Nezhurina, Jean Mercat, Trung Vu, Zayne Sprague, Ashima Suvarna, Benjamin Feuer, Liangyu
+Chen, Zaid Khan, Eric Frankel, Sachin Grover, Caroline Choi, Niklas Muennighoff, Shiye Su, Wanjia
+Zhao, John Yang, Shreyas Pimpalgaonkar, Kartik Sharma, Charlie Cheng-Jie Ji, Yichuan Deng,
+Sarah Pratt, Vivek Ramanujan, Jon Saad-Falcon, Jeffrey Li, Achal Dave, Alon Albalak, Kushal
+Arora, Blake Wulfe, Chinmay Hegde, Greg Durrett, Sewoong Oh, Mohit Bansal, Saadia Gabriel,
+Aditya Grover, Kai-Wei Chang, Vaishaal Shankar, Aaron Gokaslan, Mike A. Merrill, Tatsunori
+Hashimoto, Yejin Choi, Jenia Jitsev, Reinhard Heckel, Maheswaran Sathiamoorthy, Alexandros G.
+Dimakis, and Ludwig Schmidt. Openthoughts: Data recipes for reasoning models, 2025. URL
+https://arxiv.org/abs/2506.04178.
+[7] Andrej Karpathy. autoresearch: Ai agents running research on single-gpu nanochat training
+automatically. https://github.com/karpathy/autoresearch, 2026.
+[8] Yizhou Liu, Ziming Liu, and Jeff Gore. Superposition yields robust neural scaling. arXiv preprint
+arXiv:2505.10465, 2025.
+[9] Niklas Muennighoff, Zitong Yang, Weijia Shi, Xiang Lisa Li, Li Fei-Fei, Hannaneh Hajishirzi, Luke
+Zettlemoyer, Percy Liang, Emmanuel Candès, and Tatsunori Hashimoto. s1: Simple test-time scaling,
+2025. URL https://arxiv.org/abs/2501.19393.
+[10] OpenAI.
+
+Introducing
+deep
+research.
+https://openai.com/index/
+introducing-deep-research/, 2025. Accessed: 2025-02-02.
+
+[11] Zihan Qiu, Zekun Wang, Bo Zheng, Zeyu Huang, Kaiyue Wen, Songlin Yang, Rui Men, Le Yu, Fei
+Huang, Suozhi Huang, et al. Gated attention for large language models: Non-linearity, sparsity,
+and attention-sink-free. arXiv preprint arXiv:2505.06708, 2025.
+
+13
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+[12] Yakub Sebastian, Eu-Gene Siew, and Sylvester O Orimaye. Emerging approaches in literature-based
+discovery: techniques and performance review. The Knowledge Engineering Review, 32:e12, 2017.
+[13] Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Xiao Bi, Haowei Zhang, Mingchuan
+Zhang, YK Li, Yang Wu, et al. Deepseekmath: Pushing the limits of mathematical reasoning in open
+language models. arXiv preprint arXiv:2402.03300, 2024.
+[14] Chenglei Si, Diyi Yang, and Tatsunori Hashimoto. Can llms generate novel research ideas? a
+large-scale human study with 100+ nlp researchers. arXiv preprint arXiv:2409.04109, 2024.
+[15] Chenglei Si, Tatsunori Hashimoto, and Diyi Yang. The ideation-execution gap: Execution outcomes
+of llm-generated versus human research ideas. arXiv preprint arXiv:2506.20803, 2025.
+[16] Chenglei Si, Zitong Yang, Yejin Choi, Emmanuel Candès, Diyi Yang, and Tatsunori Hashimoto.
+Towards execution-grounded automated ai research. arXiv preprint arXiv:2601.14525, 2026.
+[17] Neil R Smalheiser. Literature-based discovery: Beyond the abcs. Journal of the American Society for
+Information Science and Technology, 63(2):218–224, 2012.
+[18] Don R Swanson. Fish oil, raynaud’s syndrome, and undiscovered public knowledge. Perspectives in
+biology and medicine, 30(1):7–18, 1986.
+[19] Don R Swanson. Undiscovered public knowledge. The Library Quarterly, 56(2):103–118, 1986.
+[20] DR Swanson. Literature-based discovery? the very idea. In Literature-based discovery, pages 3–11.
+Springer, 2008.
+[21] Kyle Swanson, Wesley Wu, Nash L Bulaong, John E Pak, and James Zou. The virtual lab of ai agents
+designs new sars-cov-2 nanobodies. Nature, pages 1–3, 2025.
+[22] Jingqi Tong, Mingzhe Li, Hangcheng Li, Yongzhuo Yang, Yurong Mou, Weijie Ma, Zhiheng Xi,
+Hongji Chen, Xiaoran Liu, Qinyuan Cheng, et al. Ai can learn scientific taste. arXiv preprint
+arXiv:2603.14473, 2026.
+[23] Manya Wadhwa, Tiasa Singha Roy, Harvey Lederman, Junyi Jessy Li, and Greg Durrett. Create:
+Testing llms for associative creativity, 2026. URL https://arxiv.org/abs/2603.09970.
+[24] Kevin Wang, Ishaan Javali, MichaĹ Bortkiewicz, Benjamin Eysenbach, et al. 1000 layer networks
+for self-supervised rl: Scaling depth can enable new goal-reaching capabilities. arXiv preprint
+arXiv:2503.14858, 2025.
+[25] Qingyun Wang, Doug Downey, Heng Ji, and Tom Hope. SciMON: Scientific inspiration machines
+optimized for novelty. In Lun-Wei Ku, Andre Martins, and Vivek Srikumar, editors, Proceedings of
+the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers),
+pages 279–299, Bangkok, Thailand, August 2024. Association for Computational Linguistics. doi:
+10.18653/v1/2024.acl-long.18. URL https://aclanthology.org/2024.acl-long.18/.
+[26] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian Ichter, Fei Xia, Ed Chi, Quoc Le,
+and Denny Zhou. Chain-of-thought prompting elicits reasoning in large language models, 2023.
+URL https://arxiv.org/abs/2201.11903.
+
+14
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+[27] Yang Yue, Zhiqi Chen, Rui Lu, Andrew Zhao, Zhaokai Wang, Shiji Song, and Gao Huang. Does
+reinforcement learning really incentivize reasoning capacity in llms beyond the base model? arXiv
+preprint arXiv:2504.13837, 2025.
+[28] Yuxiang Zheng, Dayuan Fu, Xiangkun Hu, Xiaojie Cai, Lyumanshan Ye, Pengrui Lu, and Pengfei
+Liu. DeepResearcher: Scaling deep research via reinforcement learning in real-world environments.
+In Christos Christodoulopoulos, Tanmoy Chakraborty, Carolyn Rose, and Violet Peng, editors,
+Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing, pages
+414–431, Suzhou, China, November 2025. Association for Computational Linguistics. ISBN 9798-89176-332-6. doi: 10.18653/v1/2025.emnlp-main.22. URL https://aclanthology.org/
+2025.emnlp-main.22/.
+
+15
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+A. arXiv Paper Domain Classification
+We use the arXiv category taxonomy. Since Computer Science has many subfields, we further group the
+arXiv category labels into broader macro-domains.
+Domain
+
+arXiv Labels
+
+Language
+ML/AI
+Robotics
+Vision
+Theory
+Systems
+Society
+HCI
+CS-Other
+Economics
+Electrical Engineering & Systems Science (EE & Sys. Sci.)
+Mathematics
+Physics
+Quantitative Biology (Quant. Bio.)
+Quantitative Finance (Quant. Fin.)
+Statistics
+
+cs.CL
+cs.LG, cs.AI, cs.NE, cs.MA
+cs.RO
+cs.CV, cs.GR, cs.MM, cs.SD
+cs.CC, cs.DS, cs.FL, cs.LO, cs.DM, cs.CG, cs.GT, cs.CR, cs.IT
+cs.AR, cs.OS, cs.DC, cs.NI, cs.PF, cs.SY, cs.PL, cs.SE, cs.DB, cs.IR, cs.SI
+cs.CY
+cs.HC
+cs.ET, cs.GL, cs.OH, cs.DL, cs.NA, cs.MS, cs.CE, cs.SC
+econ
+eess
+math
+astro-ph, cond-mat, gr-qc, hep-ex, hep-lat, hep-ph, hep-th, math-ph, nlin, nucl-ex, nucl-th, physics, quant-ph
+q-bio
+q-fin
+stat
+
+Table 1: Mapping from domains to arXiv category labels.
+
+B. Further Quantitative Analysis
+In this section, we provide a more granular, domain-by-domain breakdown of our quantitative results to
+better understand the performance characteristics of each model across different scientific disciplines.
+Table 2 presents the average similarity scores across the entirety of GiantsBench. The results demonstrate that GIANTS-4B achieves consistent, robust improvements over both the base models and the
+supervised fine-tuning (SFT) baselines. Notably, this performance gap holds steady across highly diverse
+fields, ranging from largely theoretical domains like Mathematics and Theory to applied disciplines such
+as Vision, Robotics, and HCI.
+To further validate the generalization capabilities of our approach and ensure the model is not merely
+memorizing training distributions, we separately evaluated performance on a highly constrained subset of
+the data: Test-unseen-parents. This subset exclusively contains test examples where the parent papers
+were never encountered during the training phase.
+The results for this holdout set are detailed in Table 3. Encouragingly, GIANTS-4B maintains its substantial
+performance gap over the baselines even on unseen literature. This indicates that our model has
+successfully learned generalized mechanisms for cross-paper insight generation that translate effectively
+to novel scientific texts.
+
+C. Prompts
+This section details the exact prompt templates utilized throughout our pipeline for both generation and
+evaluation tasks.
+
+16
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+Domain
+
+gemini-2.5-pro gemini-3-pro GIANTS-4B
+
+Base
+
+SFT
+
+SFT-think
+
+Economics
+Language
+Vision
+Theory
+Mathematics
+Quant. Fin.
+ML/AI
+Systems
+Society
+Physics
+Robotics
+EE & Sys.
+HCI
+Statistics
+Quant. Bio.
+CS-Other
+
+4.66±0.21
+4.50±0.10
+4.28±0.10
+4.54±0.10
+4.64±0.11
+4.82±0.25
+4.77±0.11
+4.62±0.11
+4.87±0.14
+4.82±0.11
+4.74±0.11
+4.83±0.11
+4.95±0.12
+5.45±0.16
+5.17±0.17
+5.16±0.16
+
+4.78±0.20
+4.75±0.10
+4.59±0.10
+4.72±0.10
+4.73±0.10
+5.15±0.23
+4.97±0.11
+5.07±0.11
+5.31±0.14
+5.27±0.11
+5.06±0.11
+5.02±0.11
+5.12±0.11
+5.38±0.15
+5.43±0.17
+5.58±0.16
+
+4.94±0.21
+4.84±0.11
+4.57±0.10
+4.80±0.11
+4.81±0.10
+5.31±0.25
+4.87±0.11
+5.13±0.11
+5.33±0.15
+5.30±0.11
+5.11±0.11
+5.08±0.11
+5.02±0.11
+5.51±0.15
+5.69±0.17
+5.42±0.16
+
+4.75±0.22
+4.45±0.11
+4.11±0.10
+4.67±0.11
+4.76±0.11
+5.04±0.26
+4.64±0.11
+4.57±0.11
+4.40±0.13
+4.95±0.11
+4.55±0.11
+4.74±0.11
+4.52±0.11
+5.50±0.16
+4.94±0.17
+4.57±0.15
+
+4.50±0.20
+4.14±0.10
+4.14±0.10
+4.58±0.11
+4.58±0.10
+4.45±0.24
+4.56±0.11
+4.41±0.11
+3.82±0.11
+4.65±0.11
+4.43±0.11
+4.55±0.11
+4.01±0.10
+5.68±0.17
+4.41±0.15
+4.19±0.14
+
+5.47±0.22
+5.50±0.11
+5.52±0.12
+5.63±0.11
+5.66±0.11
+5.75±0.26
+5.76±0.12
+6.04±0.12
+6.05±0.15
+6.14±0.12
+6.21±0.11
+6.22±0.12
+6.23±0.12
+6.46±0.16
+6.65±0.17
+6.70±0.16
+
+Overall
+
+4.75±0.03
+
+5.01±0.03
+
+5.05±0.03
+
+4.65±0.03
+
+4.43±0.03
+
+5.97±0.03
+
+Table 2: Average similarity scores (mean ± standard error) per domain on GiantsBench. The judge
+LM is gemini-3-pro.
+Domain
+
+gemini-2.5-pro gemini-3-pro GIANTS-4B
+
+Base
+
+SFT
+
+SFT-think
+
+Economics
+Language
+Vision
+Theory
+Mathematics
+Quant. Fin.
+ML/AI
+Systems
+Society
+Physics
+Robotics
+EE & Sys.
+HCI
+Statistics
+Quant. Bio.
+CS-Other
+
+4.63±0.22
+4.59±0.19
+4.45±0.14
+4.63±0.12
+4.63±0.11
+4.76±0.27
+4.88±0.15
+4.74±0.15
+4.96±0.19
+4.82±0.11
+4.89±0.13
+4.90±0.13
+5.19±0.15
+5.47±0.17
+5.27±0.18
+5.38±0.19
+
+4.73±0.21
+4.79±0.19
+4.57±0.15
+4.80±0.12
+4.72±0.10
+5.18±0.25
+5.18±0.16
+5.04±0.15
+5.45±0.19
+5.28±0.11
+5.14±0.12
+5.21±0.13
+5.23±0.14
+5.43±0.15
+5.56±0.18
+5.65±0.18
+
+4.93±0.21
+4.96±0.20
+4.64±0.14
+4.76±0.12
+4.80±0.10
+5.30±0.26
+4.95±0.15
+5.07±0.15
+5.26±0.19
+5.29±0.11
+5.19±0.13
+5.20±0.12
+5.15±0.14
+5.53±0.16
+5.77±0.18
+5.50±0.18
+
+4.76±0.23
+4.52±0.19
+4.14±0.14
+4.84±0.13
+4.74±0.11
+4.89±0.27
+4.87±0.16
+4.74±0.16
+4.47±0.17
+4.99±0.12
+4.58±0.13
+4.80±0.13
+4.74±0.14
+5.49±0.17
+5.05±0.18
+4.66±0.17
+
+4.55±0.21
+4.28±0.18
+4.33±0.15
+4.75±0.13
+4.57±0.10
+4.48±0.25
+4.99±0.16
+4.54±0.15
+3.77±0.14
+4.67±0.11
+4.48±0.13
+4.72±0.13
+4.17±0.12
+5.67±0.18
+4.35±0.16
+4.20±0.16
+
+5.50±0.23
+5.62±0.20
+5.71±0.17
+5.71±0.13
+5.63±0.11
+5.77±0.27
+6.06±0.16
+6.15±0.16
+6.13±0.20
+6.16±0.12
+6.34±0.13
+6.35±0.14
+6.41±0.15
+6.51±0.16
+6.77±0.18
+6.85±0.18
+
+Overall
+
+4.87±0.04
+
+5.10±0.04
+
+5.11±0.04
+
+4.78±0.04
+
+4.57±0.04
+
+6.11±0.04
+
+Table 3: Average similarity scores (mean ± standard error) per domain on Test-unseen-parents, which
+indicates the subset of GiantsBench test set with only unseen parent papers. The judge LLM is
+gemini-3-pro.
+
+17
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+You are given summaries of two research papers.
+<papers>
+Paper 1
+Paper 1 summary}
+Paper 2
+Paper 2 summary}
+</papers>
+Your task is to generate a novel and non-obvious insight that emerges only when both papers are considered
+together.
+Quality requirements:
+1 SPECIFIC & PRECISE Ground the insight in fine-grained details (methods, mechanisms, results, limitations) from
+both papers, not just general themes.
+2 Avoid simple combination or summary of contributions: Go further to find at least one of:
+- Chain reasoning patterns (e.g., AB from one work and BC from the other suggests AC.
+- New research directions that neither paper alone proposes (methods, architectures, experimental setups).
+- Surprising analogies, implicit principles, or shared structures not made explicit in either paper.
+3 SELFCONTAINED Write the insight so a reader who hasnʼt read the papers can understand and act on it. Do not
+refer to Paper 1 or Paper 2.
+Output format:
+<think>Explain your reasoning for the insight. Step by step, show how specific aspects of Paper 1 and Paper 2
+connect and why they lead to this insight.</think>
+<insight>
+A clear and self-contained statement of the insight 310 sentences).
+</insight>
+
+Figure 10: Prompt for insight generation. The summaries of two parent papers are in red.
+C.1. Insight Generation Prompt
+Below, the prompt utilized for the insight generation task is listed. The model is provided with the
+textual summaries of two distinct parent papers, which are highlighted in red in the accompanying
+figure. The prompt systematically instructs the model to analyze these summaries, synthesize their core
+methodologies or findings, and autonomously generate a novel scientific insight or proposed research
+direction that logically bridges and builds upon both foundational works.
+C.2. Ancestor Identification Prompt
+Here, we present the prompt designed for the ancestor identification task. The primary objective of this
+prompt is to instruct the model to determine the most influential parent papers for a given downstream
+target paper. By providing the model with the abstract or conceptual context of the downstream paper,
+the prompt asks the model to trace the scientific lineage backward and reliably identify which prior works
+from a candidate pool served as its direct conceptual ancestors.
+C.3. Similarity Judge Prompt
+Below, we outline the prompt used for automated evaluation and reward scoring via an LLM-as-a-judge
+framework. To quantitatively assess the quality and relevance of our generated insights, this prompt
+provides the evaluator model with both the human-verified ground-truth insight and the corresponding
+18
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+You are an expert research analyst. Given this research paper, your task is to:
+1. Identify two prior papers that this paper explicitly cites and builds upon by combining their ideas in a synergistic
+way.
+- The synergy should come from an insight that only emerges when information from both papers is synthesized.
+- It does not need to be the main insight or methodology of the paper. It could be a technique, approach, or design
+choice inspired by the two works — something that neither paper alone could fully support.
+2. Explain your reasoning for why these two papers together provide the foundation for the insight.
+3. Output the titles of the two papers in the following format:
+<paper1The first paper title...</paper1
+<paper2The second paper title...</paper2
+### Expected Output
+- A brief explanation of the synergy (why combining these two papers matters).
+- The titles of the two papers inside <paper1> and <paper2> tags.
+
+Figure 11: Prompt for identifying two parent papers whose ideas are synergistically combined to produce
+the given paper’s key insight, which is extracted as the ground-truth target 𝑦 * .
+model-generated insight. The model is then instructed to critically compare the two texts and output a
+similarity assessment, evaluating them on semantic alignment, scientific coherence, and the degree of
+conceptual overlap.
+C.4. Rewriting Insight Prompt
+To ensure the generated insights could be evaluated consistently, we employed a rewriting step to
+standardize their format. Figure 13 displays the prompt used to instruct the model to rewrite the raw
+insight into a clear, standalone statement without losing its original semantic meaning.
+
+19
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+Below is a research insight:
+<research_insight>
+{ground-truth insight}
+</research_insight>
+Below is a statement you need to evaluate:
+<statement>
+{model-generated insight}
+</statement>
+Task: Rate how similar the statement is to the research insight 110.
+STRICT RULES
+- Similarity requires matching the SAME core idea.
+- 'Inspired by', 'motivated by', or 'reasonable extension' ≠ same idea.
+- Shared topic or keywords alone ≠ similarity.
+Compare explicitly:
+1 Key mechanism/method
+2 Causal logic/workflow
+3 Primary contribution/novelty
+Downgrade if the statement:
+- Omits the central mechanism
+- Generalizes/abstracts the insight
+- Proposes a new framework/direction
+Scale:
+12 Unrelated.
+34 Shares topic but not the actual insight.
+56 Partial conceptual overlap; misses at least one core mechanism or misaligns assumptions.
+78 Strong match with only minor differences in mechanisms or assumptions.
+9 Near-identical conceptual + causal + motivational mapping; only minor, non-substantive deviations.
+10 Perfect: same ideas, same mechanism and roles, same objective/assumptions.
+### Output Format
+Format your response as follows:
+<think>
+Explain your reasoning for the rating you chose.
+</think>
+<rating>a number between 1 and 10/rating>
+
+Figure 12: Prompt for assessing the similarity between the ground-truth insight and model-generated
+insight.
+You are an expert research analyst.
+You are given detailed summaries of two research papers:
+<papers>
+Paper 1
+Paper 1 summary}
+Paper 2
+Paper 2 summary}
+</papers>
+You are also given an ORACLE RESPONSE that explains how a follow-up paper integrates the ideas from the two
+papers above.
+Your task:
+- Reconstruct the reasoning process that could lead to the *same final insight* as in the ORACLE RESPONSE, but
+using only the content of the two papers above.
+- Do NOT mention, reference, or imply the existence of the follow-up paper, the oracle, or any external work.
+- Your response must be self-contained and logically derived only from the two papers.
+- Your response should preserve the full level of *conceptual and technical specificity* implied in the oracle
+response.
+<oracle_response>
+Raw synergy explanation}
+</oracle_response>
+OUTPUT FORMAT (return ONLY these three sections, nothing else):
+<think>
+Internal reasoning and planning for how to reconstruct the synergy between the two papers.
+Explain how you will approach integrating their ideas and aligning the final insight with the oracle's conceptual
+structure (without mentioning the oracle explicitly in the output itself).
+</think>
+<insight>
+The final rewritten insight stated clearly and self-contained.
+Assume the reader has not seen Paper 1 or Paper 2.
+Do not refer to Paper 1 or Paper 2 by name or imply their existence.
+The insight should capture the same underlying conceptual synergy and technical details as the oracle response.
+</insight>
+<reasoning>
+Step-by-step explanation of how this insight is logically derived from the two papers.
+Explicitly identify which core ideas or mechanisms from each paper combine to produce the final integrated
+conclusion.
+Be explicit and precise about the conceptual dependencies, theoretical links, and reasoning chain that lead to the
+stated insight.
+</reasoning>
+
+Figure 13: Prompt for rewriting the insight as a standalone statement.
+
+20
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+C.5. Hyperparameters for GIANTS-4B and Baselines
+We detail the optimization and training configurations used for evaluating GIANTS-4B against the
+baselines below. The hyperparameter choices were guided by standard practices for aligning large
+language models, with slight adjustments made to accommodate our specific sequence lengths and batch
+sizes.
+RL Hyperparameters. Table 4 outlines the configuration used during the reinforcement learning phase,
+specifically utilizing the GRPO algorithm. We applied a conservative KL penalty to prevent the model
+from drifting too far from the reference policy.
+Hyperparameter
+Algorithm
+Training steps
+Train batch size
+Group size
+Max prompt length
+Max response length
+Learning rate
+Entropy coefficient
+KL loss coefficient
+KL loss type
+Sampling temperature (train / val)
+Samples per prompt (train / val)
+Max batched tokens
+Uneven Clipping (low / high)
+
+Value
+GRPO [13]
+400
+64
+8
+3000
+1296
+1 × 10−6
+0.001
+0.001
+
+low_var_kl
+0.6 / 0.6
+16 / 8
+32768
+0.2 / 0.5
+
+Table 4: Key reinforcement learning hyperparameters used in our experiments.
+
+Supervised Learning Hyperparameters. Table 5 details the setup for our supervised fine-tuning
+(SFT) baselines. Where multiple values were explored during our grid search, the final selected optimal
+configuration is marked in bold.
+
+21
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+Hyperparameter
+
+Value
+
+Algorithm
+Epochs
+Train batch size
+Max length (input + output)
+Learning rate
+Weight decay
+Sampling temperature (train / val)
+Learning rate schedule
+Learning rate warmup ratio
+Gradient checkpointing
+Gradient accumulation steps
+
+SFT []
+10
+64
+16384
+5 × 10−5 , 1 × 10−5 , 5 × 10−6 , 1 × 10−6
+1 × 10−2 , 1 × 10−4
+0.6 / 0.6
+Cosine annealing
+0.01
+True
+16
+
+Table 5: Key supervised fine-tuning hyperparameters used in our experiments. Bold indicates the selected
+configuration when multiple values were explored.
+
+D. Ablations with Diverse LM Judges
+Judge: gemini-2.5-flash
+
+Judge: gemini-2.5-pro
+
+Judge: gemini-3-flash-preview
+
+Mathematics
+Quant. Finance
+Theory
+8
+ML/AI
+Vision
+7
+
+Mathematics
+Quant. Finance
+Theory
+8
+ML/AI
+Vision
+7
+
+Mathematics
+Quant. Finance
+Theory
+8
+ML/AI
+Vision
+7
+
+6
+
+Systems
+
+Language
+
+5
+4
+
+Society
+
+CS-Other
+
+EE & Sys. Sci.
+
+4
+
+Statistics
+Base
+
+CS-Other
+
+Robotics
+
+SFT
+
+SFT-think
+
+Statistics
+
+HCI
+gemini-2.5-pro
+
+Language
+
+5
+4
+
+Economics
+
+Physics
+
+Quant. Biology
+
+EE & Sys. Sci.
+
+6
+
+Systems
+
+Economics Society
+
+Physics
+
+Quant. Biology
+HCI
+
+Language
+
+5
+
+Economics Society
+
+Physics
+Robotics
+
+6
+
+Systems
+
+CS-Other
+
+Robotics
+
+Quant. Biology
+
+EE & Sys. Sci.
+gemini-3-pro-preview
+
+HCI
+
+Statistics
+
+GIANTS-4B
+
+Figure 14: Similarity scores on Test-unseen-parents. This is the subset of GiantsBench test set with
+only unseen parent papers.
+
+E. More Human Eval Details
+To validate the reliability of our automated metrics, we conducted a preliminary human evaluation study
+focusing on insight similarity. Annotators were tasked with scoring the semantic alignment between
+model-generated insights and ground-truth insights. To facilitate this process and ensure an unbiased
+environment, we developed a custom web interface, shown in Figure 16. Importantly, the human
+annotators were provided with the exact same scoring rubric and guidelines that were given to the LLM
+judge, allowing us to accurately measure the consistency between human judgment and our automated
+evaluation pipeline, with the exact context provided to the LLM judge.
+22
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+Figure 15: Human Eval Labeling App Here is the Gradio interface that was used by human labelers
+to measure the consistency of LLM similarity with human ratings. The rubric provided to the humans
+exactly matched that provided to the LLM judge for consistency (with markdown formatting for human
+interpretability).
+
+23
+
+GIANTS : Generative Insight Anticipation from Scientific Literature
+
+Figure 16: Feasibility Human Eval Labeling App Here is the Gradio interface that was used by human
+labelers to measure the feasibility of a research insight with human ratings. The rubric provided to the
+humans exactly matched that provided to the LLM judge for consistency (with markdown formatting for
+human interpretability).
+
+24
+
+
