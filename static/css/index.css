@@ -148,3 +148,123 @@ tr.has-background-primary-light th {
 .results-carousel video { margin: 0; }
 .slider-pagination .slider-page { background: #000000; }
 .eql-cntrb { font-size: smaller; }
+
+/* --- Dark Mode Styles --- */
+body.dark-mode {
+  background: #0d1117 !important;
+  color: #c9d1d9 !important;
+}
+
+body.dark-mode .hero, 
+body.dark-mode .section, 
+body.dark-mode .hero.is-light, 
+body.dark-mode .section.has-background-light {
+  background-color: transparent !important;
+}
+
+body.dark-mode .box, 
+body.dark-mode .text-center[style*="border"], 
+body.dark-mode .table-container.box {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.dark-mode .box:hover, 
+body.dark-mode .text-center[style*="border"]:hover, 
+body.dark-mode .table-container.box:hover {
+  box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.6) !important;
+  border-color: #8b949e !important;
+}
+
+body.dark-mode .title.publication-title,
+body.dark-mode .title.is-3,
+body.dark-mode .title.is-2,
+body.dark-mode .title.is-5,
+body.dark-mode .metric-number {
+  color: #f0f6fc !important;
+}
+
+body.dark-mode .button.is-dark {
+  background: linear-gradient(135deg, #1f6feb, #388bfd) !important;
+}
+
+body.dark-mode .table thead th {
+  color: #c9d1d9 !important;
+  background-color: #21262d !important;
+  border-color: #30363d !important;
+}
+
+body.dark-mode .table td,
+body.dark-mode .table th {
+  border-color: #30363d !important;
+  color: #c9d1d9 !important;
+}
+
+body.dark-mode .table tbody tr:hover {
+  background-color: rgba(48, 54, 61, 0.6) !important;
+}
+
+body.dark-mode .has-background-primary-light,
+body.dark-mode tr.has-background-primary-light td,
+body.dark-mode tr.has-background-primary-light th {
+  background-color: rgba(31, 111, 235, 0.2) !important; 
+}
+
+body.dark-mode #abstract .box {
+  background: #161b22 !important;
+  border-color: rgba(56, 139, 253, 0.5) !important;
+  box-shadow: 0 0 25px rgba(56, 139, 253, 0.15) !important;
+}
+
+body.dark-mode #abstract .box:hover {
+  box-shadow: 0 0 35px rgba(56, 139, 253, 0.25) !important;
+}
+
+body.dark-mode .footer {
+  background: #0d1117 !important;
+  border-top-color: #30363d !important;
+}
+
+body.dark-mode .footer .icon-link,
+body.dark-mode .footer .content a:not(.icon-link),
+body.dark-mode .publication-authors a {
+  color: #58a6ff !important;
+}
+
+body.dark-mode .footer .icon-link:hover,
+body.dark-mode .footer .content a:not(.icon-link):hover,
+body.dark-mode .publication-authors a:hover {
+  color: #79c0ff !important;
+}
+
+/* Adjust text colors */
+body.dark-mode .tw-text-gray-500,
+body.dark-mode .tw-text-gray-600,
+body.dark-mode p.tw-text-gray-600,
+body.dark-mode p.tw-text-gray-500,
+body.dark-mode div.tw-text-gray-600 {
+  color: #8b949e !important;
+}
+
+body.dark-mode .tw-text-gray-900 {
+  color: #f0f6fc !important;
+}
+
+/* Dark mode toggle button styles */
+body.dark-mode #darkModeToggle {
+  background-color: #21262d !important;
+  border-color: #30363d !important;
+  color: #f0f6fc !important;
+}
+
+body.dark-mode #darkModeToggle:hover {
+  background-color: #30363d !important;
+}
+
+#darkModeToggle {
+  transition: all 0.3s ease;
+}
+#darkModeToggle:hover {
+  transform: scale(1.1);
+}
