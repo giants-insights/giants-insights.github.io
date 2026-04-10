@@ -166,6 +166,7 @@ body.dark-mode .box,
 body.dark-mode .text-center[style*="border"], 
 body.dark-mode .table-container.box {
   background: #161b22 !important;
+  color: #d0d7de !important;
   border-color: #30363d !important;
   box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4) !important;
 }
@@ -183,6 +184,34 @@ body.dark-mode .title.is-2,
 body.dark-mode .title.is-5,
 body.dark-mode .metric-number {
   color: #f0f6fc !important;
+}
+
+/* Bulma hard-codes several light-theme text colors, so we restate them for dark mode. */
+body.dark-mode .content,
+body.dark-mode .content p,
+body.dark-mode .content li,
+body.dark-mode .content blockquote,
+body.dark-mode .subtitle,
+body.dark-mode .publication-venue,
+body.dark-mode .publication-awards {
+  color: #d0d7de !important;
+}
+
+body.dark-mode strong,
+body.dark-mode .content strong,
+body.dark-mode .has-text-weight-bold {
+  color: #f0f6fc !important;
+}
+
+body.dark-mode code,
+body.dark-mode pre {
+  background-color: #21262d !important;
+  color: #ffb3c1 !important;
+}
+
+body.dark-mode pre code {
+  background-color: transparent !important;
+  color: inherit !important;
 }
 
 body.dark-mode .button.is-dark {
@@ -203,6 +232,16 @@ body.dark-mode .table th {
 
 body.dark-mode .table tbody tr:hover {
   background-color: rgba(48, 54, 61, 0.6) !important;
+}
+
+body.dark-mode .table.is-striped tbody tr:not(.is-selected):nth-child(even),
+body.dark-mode .table.is-striped tbody tr:not(.is-selected):nth-child(even) td {
+  background-color: #1b2230 !important;
+}
+
+body.dark-mode .table.is-striped tbody tr:not(.is-selected):nth-child(odd),
+body.dark-mode .table.is-striped tbody tr:not(.is-selected):nth-child(odd) td {
+  background-color: transparent !important;
 }
 
 body.dark-mode .has-background-primary-light,
@@ -244,7 +283,7 @@ body.dark-mode .tw-text-gray-600,
 body.dark-mode p.tw-text-gray-600,
 body.dark-mode p.tw-text-gray-500,
 body.dark-mode div.tw-text-gray-600 {
-  color: #8b949e !important;
+  color: #a9b4bf !important;
 }
 
 body.dark-mode .tw-text-gray-900 {
